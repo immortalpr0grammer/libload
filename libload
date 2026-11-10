@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+# TODO: change
+work_dir=~/programming/bash/libload
+
+find-bash() {
+	local name
+	for name in "$@"; do
+		local filetype="$(file -b $name)"
+		if [[ $filetype == "Bourne-Again shell script, ASCII text executable" ]]; then
+			echo "$name"
+		fi
+	done
+}
+
+main() {
+	for url in "$@"; do
+		git clone $url $work_dir/tmp 2> /dev/null
+		local found=$(find-bash $work_dir/tmp/*)
+
+		# checking if there are multiple things found
+		if [[ $found == *$'\n'* ]]; then
+			# TODO: add an option to choose which bash script to use
+			echo "repository has more than one bash script" >&2
+			return 1
+		fi
+
+		# TODO: make it able to detect when that already exists and throw an error
+		# TODO: make all variables be local so they don't bleed out
+		# TODO: remove the shebangs of the loaded modules
+		echo "$(basename $found)() {" >> $work_dir/.bashrc
+		cat $found >> $work_dir/.bashrc
+		echo "}" >> $work_dir/.bashrc
+
+		rm -rf $work_dir/tmp
+	done
+}
+
+if main $@; then
+	echo "command was successful"
+else
+	echo "command failed" >&2
+fi
+
